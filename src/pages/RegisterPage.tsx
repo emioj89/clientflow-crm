@@ -10,6 +10,7 @@ export const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   if (!isSupabaseConfigured) {
     return (
@@ -44,15 +45,25 @@ export const RegisterPage: React.FC = () => {
 
     try {
       const client = getSupabaseClient();
-      const { error } = await client.auth.signUp({
+      const redirectUrl = new URL(
+        import.meta.env.BASE_URL,
+        window.location.origin
+      ).toString();
+
+      const { data, error } = await client.auth.signUp({
         email: email.trim(),
         password: password.trim(),
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
       });
 
       if (error) {
         setErrorMessage('Unable to register account. Please try again.');
-      } else {
+      } else if (data.session) {
         navigate('/dashboard', { replace: true });
+      } else {
+        setIsSuccess(true);
       }
     } catch {
       setErrorMessage('An unexpected error occurred during registration.');
@@ -60,6 +71,34 @@ export const RegisterPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="auth-layout">
+        <div className="auth-card text-center">
+          <div className="auth-header">
+            <div className="auth-brand">
+              <span className="brand-icon">✉️</span>
+              <h2>Confirm Your Email</h2>
+            </div>
+            <p className="auth-subtitle margin-top-sm">
+              Check your email to confirm your account before signing in.
+            </p>
+          </div>
+
+          <div className="auth-footer margin-top-md">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={() => navigate('/login')}
+            >
+              Go to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-layout">
@@ -148,4 +187,3 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
-
